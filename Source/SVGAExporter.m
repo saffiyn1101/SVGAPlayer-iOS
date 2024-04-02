@@ -22,45 +22,53 @@
 
 @implementation SVGAExporter
 
-- (NSArray<UIImage *> *)toImages {
+- (NSArray<UIImage *> *) toImages {
     NSMutableArray *images = [NSMutableArray array];
     if (self.videoItem != nil && self.videoItem.videoSize.width > 0.0 && self.videoItem.videoSize.height > 0.0) {
         [self draw];
+
+        UIGraphicsImageRendererFormat *format = [[UIGraphicsImageRendererFormat alloc] init];
+        format.scale = 1.0; // Set scale to 1.0 to match previous behavior
+
         for (NSInteger i = 0; i < self.videoItem.frames; i++) {
             self.currentFrame = i;
             [self update];
-            UIGraphicsBeginImageContextWithOptions(self.drawLayer.frame.size, NO, 1.0);
-            [self.drawLayer renderInContext:UIGraphicsGetCurrentContext()];
-            UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+            UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize: self.drawLayer.frame.size format: format];
+            UIImage *image = [renderer imageWithActions: ^(UIGraphicsImageRendererContext * _Nonnull rendererContext) {
+                [self.drawLayer renderInContext: rendererContext.CGContext];
+            }];
             if (image != nil) {
-                [images addObject:image];
+                [images addObject: image];
             }
-            UIGraphicsEndImageContext();
         }
     }
     return [images copy];
 }
 
-- (void)saveImages:(NSString *)toPath filePrefix:(NSString *)filePrefix {
+- (void) saveImages: (NSString *) toPath filePrefix: (NSString *) filePrefix {
     if (filePrefix == nil) {
         filePrefix = @"";
     }
-    [[NSFileManager defaultManager] createDirectoryAtPath:toPath withIntermediateDirectories:YES attributes:nil error:NULL];
+    [[NSFileManager defaultManager] createDirectoryAtPath: toPath withIntermediateDirectories: YES attributes: nil error: NULL];
     if (self.videoItem != nil && self.videoItem.videoSize.width > 0.0 && self.videoItem.videoSize.height > 0.0) {
         [self draw];
+
+        UIGraphicsImageRendererFormat *format = [[UIGraphicsImageRendererFormat alloc] init];
+        format.scale = 1.0; // Set scale to 1.0 to match previous behavior
+
         for (NSInteger i = 0; i < self.videoItem.frames; i++) {
             self.currentFrame = i;
             [self update];
-            UIGraphicsBeginImageContextWithOptions(self.drawLayer.frame.size, NO, 1.0);
-            [self.drawLayer renderInContext:UIGraphicsGetCurrentContext()];
-            UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+            UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize: self.drawLayer.frame.size format: format];
+            UIImage *image = [renderer imageWithActions: ^(UIGraphicsImageRendererContext * _Nonnull rendererContext) {
+                [self.drawLayer renderInContext: rendererContext.CGContext];
+            }];
             if (image != nil) {
                 NSData *imageData = UIImagePNGRepresentation(image);
                 if (imageData != nil) {
-                    [imageData writeToFile:[NSString stringWithFormat:@"%@/%@%ld.png", toPath, filePrefix, (long)i] atomically:YES];
+                    [imageData writeToFile: [NSString stringWithFormat: @"%@/%@%ld.png", toPath, filePrefix, (long)i] atomically: YES];
                 }
             }
-            UIGraphicsEndImageContext();
         }
     }
 }
